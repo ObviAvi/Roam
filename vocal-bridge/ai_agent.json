@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "description": "Roam trip planning backend that searches Sabre flights, hotels, and rental cars, applies weather-aware recommendations, stores user preferences, and returns structured trip options for the UI.",
+  "verbatim": true
+}

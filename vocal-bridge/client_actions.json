@@ -1,0 +1,24 @@
+[
+  {
+    "name": "show_trip_options",
+    "description": "Display complete trip options with exact flight, hotel, and car listings in the app UI",
+    "direction": "agent_to_app"
+  },
+  {
+    "name": "select_trip",
+    "description": "Highlight the selected trip, show the Mapbox route map, and display recommendations",
+    "direction": "agent_to_app"
+  },
+  {
+    "name": "trip_selected",
+    "description": "User selected a trip option in the UI",
+    "direction": "app_to_agent",
+    "behavior": "respond"
+  },
+  {
+    "name": "planning_started",
+    "description": "User opened the trip planner and is ready to begin",
+    "direction": "app_to_agent",
+    "behavior": "notify"
+  }
+]

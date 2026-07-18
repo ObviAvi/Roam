@@ -1,0 +1,15 @@
+node_modules/
+.next/
+__pycache__/
+*.py[cod]
+.env
+.env.local
+frontend/.env.local
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.DS_Store
+backend/data/sessions/
+backend/data/memory.json
