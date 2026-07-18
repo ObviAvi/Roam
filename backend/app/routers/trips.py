@@ -1,20 +1,19 @@
 from fastapi import APIRouter, HTTPException
 
-from app.config import get_settings
 from app.models.schemas import (
-    AgentQueryRequest,
-    AgentQueryResponse,
+    Itinerary,
+    ItineraryRequest,
     RecommendationsResponse,
     SelectTripRequest,
+    TripOption,
     TripPlanResponse,
     TripRequest,
-    UserPreferences,
 )
-from app.services.agent import handle_agent_query
+from app.services.gemini import DayPlanError, generate_day_plan
 from app.services.memory import (
     get_selected_option,
     get_session_options,
-    load_preferences,
+    get_session_request,
     save_selected_option,
 )
 from app.services.planner import build_recommendations, build_trip_plan, parse_user_message
@@ -66,3 +65,17 @@ async def recommendations(session_id: str) -> RecommendationsResponse:
     if not option:
         raise HTTPException(status_code=404, detail="No trip selected")
     return build_recommendations(option)
+
+
+@router.post("/trips/itinerary", response_model=Itinerary)
+async def itinerary(payload: ItineraryRequest) -> Itinerary:
+    """Generate a day-by-day plan for a chosen trip via Gemini + web search."""
+    options = get_session_options(payload.session_id)
+    selected = next((o for o in options if o.get("id") == payload.option_id), None)
+    if not selected:
+        raise HTTPException(status_code=404, detail="Trip option not found")
+    style = get_session_request(payload.session_id).trip_style
+    try:
+        return await generate_day_plan(TripOption(**selected), style)
+    except DayPlanError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

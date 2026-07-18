@@ -10,6 +10,7 @@ Voice-enabled weekend trip planner built for the Sabre × Vocal Bridge hackathon
 - **Weather-aware guidance** via Open-Meteo
 - **Personalized memory** stored between sessions (`backend/data/memory.json`)
 - **Mapbox map** zooms into your selected destination
+- **Gemini day planner** builds a morning-to-evening itinerary (web-search grounded), mapped with pins and arrows
 - **Recommendations** for packing, tips, and weather notes
 
 ## Project structure
@@ -34,7 +35,7 @@ Copy your keys into `.env` at the repo root (you already have one). Required key
 Optional:
 
 - `VOCAL_BRIDGE_AGENT_ID` — required if using an account-level Vocal Bridge key
-- `OPENAI_API_KEY` — improves backend response phrasing
+- `GEMINI_API_KEY` — enables the "Plan day trip" itinerary generator (Google AI Studio)
 
 Sync frontend env:
 
@@ -95,6 +96,7 @@ VOCAL_BRIDGE_AGENT_ID=your-agent-uuid
 | `POST /api/plan` | Direct trip planning |
 | `GET /api/trips/{session_id}` | Cached trip options |
 | `POST /api/trips/select` | Select a trip + get recommendations |
+| `POST /api/trips/itinerary` | Gemini day-by-day plan for a selected trip |
 | `GET /api/memory/{user_id}` | User preference memory |
 
 ## Voice demo script

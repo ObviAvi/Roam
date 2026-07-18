@@ -123,7 +123,7 @@ async def build_trip_plan(request: TripRequest) -> TripPlanResponse:
     if not departure or not return_date:
         departure, return_date = SabreClient.next_weekend()
 
-    destinations = sabre.pick_destinations(origin_airport, request.trip_style, count=3)
+    destinations = sabre.pick_destinations(origin_airport, request.trip_style, count=5)
     options: list[TripOption] = []
 
     for dest in destinations:
@@ -144,8 +144,10 @@ async def build_trip_plan(request: TripRequest) -> TripPlanResponse:
         car = await sabre.search_cars(dest["airport"], departure, return_date)
         total = round(flight["price"] + hotel["price"] + car["price"], 2)
 
-        if not _within_budget(total, request.budget):
-            continue
+        within_budget = _within_budget(total, request.budget)
+        over_budget_by = 0.0
+        if request.budget and total > request.budget:
+            over_budget_by = round(total - request.budget, 2)
 
         weather_data = await get_weather(dest["city"], dest.get("state"))
         weather = WeatherInfo(**weather_data)
@@ -154,7 +156,10 @@ async def build_trip_plan(request: TripRequest) -> TripPlanResponse:
         if request.trip_style:
             why.insert(0, f"Matches your {request.trip_style} travel style")
         if request.budget:
-            why.append(f"Fits your ${int(request.budget)} budget at ${total:.0f} total")
+            if within_budget:
+                why.append(f"Fits your ${int(request.budget)} budget at ${total:.0f} total")
+            else:
+                why.append(f"About ${over_budget_by:.0f} over your ${int(request.budget)} budget")
         why.append(weather.summary)
 
         option = TripOption(
@@ -178,52 +183,37 @@ async def build_trip_plan(request: TripRequest) -> TripPlanResponse:
             weather=weather,
             departure_date=departure,
             return_date=return_date,
+            within_budget=within_budget,
+            over_budget_by=over_budget_by,
         )
         options.append(option)
 
-    if not options and destinations:
-        dest = destinations[0]
-        flight = await sabre.search_flights(origin_airport, dest["airport"], departure, return_date, request.travelers)
-        hotel = await sabre.search_hotels(dest["airport"], dest["city"], departure, return_date, request.travelers)
-        car = await sabre.search_cars(dest["airport"], departure, return_date)
-        total = round(flight["price"] + hotel["price"] + car["price"], 2)
-        weather_data = await get_weather(dest["city"], dest.get("state"))
-        option = TripOption(
-            id=str(uuid.uuid4())[:8],
-            destination_city=dest["city"],
-            destination_state=dest.get("state"),
-            destination_airport=dest["airport"],
-            destination_lat=dest["lat"],
-            destination_lng=dest["lng"],
-            origin_airport=origin_airport,
-            total_price=total,
-            flight_price=flight["price"],
-            hotel_price=hotel["price"],
-            car_price=car["price"],
-            listings=[
-                ListingItem(category="flight", title=flight["title"], description=flight["description"], price=flight["price"], details=flight["details"]),
-                ListingItem(category="hotel", title=hotel["title"], description=hotel["description"], price=hotel["price"], details=hotel["details"]),
-                ListingItem(category="car", title=car["title"], description=car["description"], price=car["price"], details=car["details"]),
-            ],
-            why=dest["why"] + [weather_data["summary"]],
-            weather=WeatherInfo(**weather_data),
-            departure_date=departure,
-            return_date=return_date,
-        )
-        options = [option]
-
-    options.sort(key=lambda o: o.total_price)
+    # Show budget-fitting trips first, then the closest over-budget ones, each by price.
+    options.sort(key=lambda o: (not o.within_budget, o.total_price))
     save_session_options(request.session_id, [o.model_dump() for o in options])
 
     if not options:
         message = "I couldn't find trip options with those constraints. Try raising your budget or changing your origin."
     else:
-        lines = [f"I found {len(options)} complete weekend trip options:"]
+        in_budget = [o for o in options if o.within_budget]
+        if request.budget and not in_budget:
+            lines = [
+                f"None of the trips fit under ${int(request.budget)}, but here are the "
+                f"{len(options)} closest weekend options:"
+            ]
+        elif request.budget and in_budget:
+            lines = [
+                f"I found {len(in_budget)} weekend trips within your ${int(request.budget)} budget "
+                f"(plus {len(options) - len(in_budget)} slightly-over picks):"
+            ]
+        else:
+            lines = [f"I found {len(options)} complete weekend trip options:"]
         for idx, opt in enumerate(options, start=1):
+            flag = "" if opt.within_budget else " (over budget)"
             lines.append(
                 f"Option {idx}: {opt.destination_city}, {opt.destination_state or ''} — "
                 f"flights ${opt.flight_price:.0f}, hotel ${opt.hotel_price:.0f}, car ${opt.car_price:.0f}, "
-                f"total ${opt.total_price:.0f}."
+                f"total ${opt.total_price:.0f}{flag}."
             )
         message = " ".join(lines)
 

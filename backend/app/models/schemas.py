@@ -63,6 +63,8 @@ class TripOption(BaseModel):
     weather: WeatherInfo | None = None
     departure_date: str | None = None
     return_date: str | None = None
+    within_budget: bool = True
+    over_budget_by: float = 0.0
 
 
 class TripPlanResponse(BaseModel):
@@ -96,3 +98,40 @@ class RecommendationsResponse(BaseModel):
     tips: list[str]
     weather_notes: list[str]
     itinerary_highlights: list[str]
+
+
+class Activity(BaseModel):
+    id: str
+    name: str
+    category: str
+    description: str
+    lat: float
+    lng: float
+    cost_estimate: float = 0.0
+    duration_hours: float = 1.5
+
+
+class ItinerarySegment(BaseModel):
+    period: Literal["Morning", "Afternoon", "Evening"]
+    time_label: str
+    activity: Activity
+
+
+class ItineraryDay(BaseModel):
+    day_index: int
+    date: str | None = None
+    title: str
+    segments: list[ItinerarySegment]
+
+
+class Itinerary(BaseModel):
+    option_id: str
+    destination_city: str
+    destination_state: str | None = None
+    days: list[ItineraryDay]
+    activities: list[Activity] = Field(default_factory=list)
+
+
+class ItineraryRequest(BaseModel):
+    session_id: str = "default"
+    option_id: str

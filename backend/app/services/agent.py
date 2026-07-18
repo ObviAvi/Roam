@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import json
 import re
 
-from app.config import get_settings
 from app.models.schemas import AgentQueryRequest, AgentQueryResponse
 from app.services.memory import get_selected_option, get_session_options, save_selected_option
 from app.services.planner import (
@@ -19,33 +17,6 @@ PLAN_KEYWORDS = re.compile(
     re.I,
 )
 SELECT_KEYWORDS = re.compile(r"\b(select|choose|pick|option\s+\d+|go with|want option)\b", re.I)
-
-
-async def _maybe_openai_response(query: str, context: str) -> str | None:
-    settings = get_settings()
-    if not settings.openai_api_key:
-        return None
-    try:
-        from openai import OpenAI
-
-        client = OpenAI(api_key=settings.openai_api_key)
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a concise travel planning assistant. Use the provided structured context. "
-                        "Keep responses short and conversational for voice."
-                    ),
-                },
-                {"role": "user", "content": f"Context:\n{context}\n\nUser:\n{query}"},
-            ],
-            max_tokens=250,
-        )
-        return completion.choices[0].message.content
-    except Exception:
-        return None
 
 
 async def handle_agent_query(payload: AgentQueryRequest) -> AgentQueryResponse:
@@ -98,10 +69,8 @@ async def handle_agent_query(payload: AgentQueryRequest) -> AgentQueryResponse:
             )
 
         plan = await build_trip_plan(request)
-        llm = await _maybe_openai_response(query, json.dumps(plan.model_dump(), default=str))
-        response = llm or plan.message
         return AgentQueryResponse(
-            response=response,
+            response=plan.message,
             action="show_trip_options",
             payload={"options": [o.model_dump() for o in plan.options], "message": plan.message},
         )

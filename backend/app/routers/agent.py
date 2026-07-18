@@ -1,9 +1,8 @@
 from fastapi import APIRouter
 
-from app.models.schemas import AgentQueryRequest, AgentQueryResponse
+from app.models.schemas import AgentQueryRequest, AgentQueryResponse, UserPreferences
 from app.services.agent import handle_agent_query
 from app.services.memory import load_preferences, save_preferences
-from app.models.schemas import UserPreferences
 
 router = APIRouter(prefix="/api", tags=["agent"])
 

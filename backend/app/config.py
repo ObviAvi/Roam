@@ -20,7 +20,11 @@ class Settings(BaseSettings):
     )
     sabre_api_key: str = ""
     mapbox_token: str = ""
-    openai_api_key: str = ""
+    gemini_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    )
+    gemini_model: str = "gemini-2.5-flash"
     sabre_base_url: str = "https://api.cert.platform.sabre.com"
     vocal_bridge_url: str = "https://vocalbridgeai.com"
     vocal_bridge_agent_id: str = ""
