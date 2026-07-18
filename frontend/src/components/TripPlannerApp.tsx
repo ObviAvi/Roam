@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import GlobeBackground from "@/components/GlobeBackground";
 import ItineraryPanel from "@/components/ItineraryPanel";
+import LandingHero from "@/components/LandingHero";
 import RecommendationsPanel from "@/components/RecommendationsPanel";
 import RoamLogo from "@/components/RoamLogo";
 import TripMap from "@/components/TripMap";
@@ -23,6 +24,7 @@ export default function TripPlannerApp() {
   const [activeActivityId, setActiveActivityId] = useState<string | null>(null);
   const [isConversing, setIsConversing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [entered, setEntered] = useState(false);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
   const handleTripOptions = (nextOptions: TripOption[]) => {
@@ -56,6 +58,10 @@ export default function TripPlannerApp() {
       setItineraryLoading(false);
     }
   };
+
+  if (!entered) {
+    return <LandingHero onEnter={() => setEntered(true)} />;
+  }
 
   return (
     <div className="relative h-screen overflow-hidden bg-black p-3 text-white">
